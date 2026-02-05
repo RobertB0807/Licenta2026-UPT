@@ -1,17 +1,13 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
 import React from 'react';
-import LoginScreen from './src/screens/LoginScreen';
+import AuthNavigator from './src/navigation/AuthNavigator';
+import { AuthProvider } from './src/context/AuthContext';
 
 export default function App() {
-  return <LoginScreen />;
+  return (
+    <AuthProvider>
+      <AuthNavigator />
+      <StatusBar style="auto" />
+    </AuthProvider>
+  );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});

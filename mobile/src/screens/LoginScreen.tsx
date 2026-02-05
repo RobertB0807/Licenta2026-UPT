@@ -2,124 +2,144 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  TextInput,
-  TouchableOpacity,
   StyleSheet,
   Alert,
-  ActivityIndicator,
 } from 'react-native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import authService from '../services/authService';
+import { AuthStackParamList } from '../types/navigation.types';
+import { useAuth } from '../context/AuthContext';
+import CustomInput from '../components/CustomInput';
+import CustomButton from '../components/CustomButton';
+import Colors from '../constants/colors';
+import { validateEmail } from '../utils/validation';
 
-export default function LoginScreen() {
+type LoginScreenProps = {
+  navigation: NativeStackNavigationProp<AuthStackParamList, 'Login'>;
+};
+
+export default function LoginScreen({ navigation }: LoginScreenProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-    const handleLogin = async () => {
-    if (!email || !password) {
-        Alert.alert('Error', 'Please fill in all fields');
-        return;
+  const { login } = useAuth();
+
+  // State-uri pentru validare
+  const [emailError, setEmailError] = useState('');
+
+  // Validare email în timp real
+  const handleEmailChange = (text: string) => {
+    setEmail(text);
+    if (text) {
+      const validation = validateEmail(text);
+      setEmailError(validation.isValid ? '' : validation.message || '');
+    } else {
+      setEmailError('');
     }
+  };
+
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
     console.log('=== LOGIN ATTEMPT ===');
     console.log('Email:', email);
-    
+
     setLoading(true);
     try {
-        console.log('Calling authService.login...');
-        const response = await authService.login({ email, password });
-        console.log('Login SUCCESS:', response);
-        Alert.alert('Success', `Welcome ${response.user.username}!`);
+      console.log('Calling authService.login...');
+      const response = await authService.login({ email, password });
+      console.log('Login SUCCESS:', response);
+
+      login({
+        id: response.user.id,
+        username: response.user.username,
+        email: response.user.email,
+      });
+
+      navigation.navigate('Home');
     } catch (error: any) {
-        console.log('=== LOGIN ERROR ===');
-        console.log('Error:', error);
-        console.log('Error message:', error.message);
-        console.log('Error response:', error.response?.data);
-        
-        Alert.alert('Error', error.response?.data?.detail || error.message || 'Login failed');
+      console.log('=== LOGIN ERROR ===');
+      console.log('Error:', error);
+      console.log('Error message:', error.message);
+      console.log('Error response:', error.response?.data);
+
+      let errorMessage = 'Login failed';
+
+      if (error.response?.data?.detail) {
+        errorMessage = error.response.data.detail;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      Alert.alert('Error', errorMessage);
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
-    };
+  };
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Social Engineering Education</Text>
-      <Text style={styles.subtitle}>Login</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
+      <Text style={styles.title}>Welcome Back</Text>
+      <Text style={styles.subtitle}>Sign in to continue</Text>
+      <CustomInput
+        label="Email"
+        placeholder="Enter your email"
         value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
+        onChangeText={handleEmailChange}
+        error={emailError}
+        isValid={email.length > 0 && !emailError}
         keyboardType="email-address"
+        autoCapitalize="none"
       />
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
+      <CustomInput
+        label="Password"
+        placeholder="Enter your password"
         value={password}
         onChangeText={setPassword}
-        secureTextEntry
+        isPassword
       />
-      <TouchableOpacity
-        style={styles.button}
+      <CustomButton
+        title="Login"
         onPress={handleLogin}
-        disabled={loading}
+        loading={loading}
+      />
+      <Text
+        style={styles.linkText}
+        onPress={() => navigation.navigate('Register')}
       >
-        {loading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>Login</Text>
-        )}
-      </TouchableOpacity>
-      <TouchableOpacity>
-        <Text style={styles.linkText}>Don't have an account? Register</Text>
-      </TouchableOpacity>
+        Don't have an account? Register
+      </Text>
     </View>
   );
 }
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',
     padding: 20,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: Colors.background,
   },
   title: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: 'bold',
-    textAlign: 'center',
     marginBottom: 10,
-    color: '#333',
+    textAlign: 'center',
+    color: Colors.text,
   },
   subtitle: {
-    fontSize: 20,
-    textAlign: 'center',
-    marginBottom: 30,
-    color: '#666',
-  },
-  input: {
-    backgroundColor: '#fff',
-    padding: 15,
-    borderRadius: 8,
-    marginBottom: 15,
     fontSize: 16,
-    borderWidth: 1,
-    borderColor: '#ddd',
-  },
-  button: {
-    backgroundColor: '#007AFF',
-    padding: 15,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
+    marginBottom: 30,
+    textAlign: 'center',
+    color: Colors.textSecondary,
   },
   linkText: {
     textAlign: 'center',
     marginTop: 20,
-    color: '#007AFF',
+    color: Colors.primary,
     fontSize: 16,
   },
 });
